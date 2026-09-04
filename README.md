@@ -3,18 +3,20 @@ A twitter saver built in C as my project
 
 Built using libcurl, shit was so fucking hard to understand
 ## Usage
-+) Edit the file path to your preference, but it would remain in home/yourdirectory because im lazy
++) Download the program, extract it.
 
-+) Cd into the folder, do
++) Open your terminal and Cd into the folder, do
 ```
 make clean
 make 
 ```
-to rebuild the program
+to build the program
 
-(note that you need a C compiler for this)
+(note that you need a C compiler for this, get one at https://www.msys2.org/)
 
 run ./saver and just paste the twit url + your category. 
+
+You will be prompted to enter a new directory or use your existing one (saved right in the parent folder)
 
 Note that if the category you entered doesn't exist then it would make a new one for you
 
