@@ -56,15 +56,9 @@ int og_imageExtractor(const char *html, char *outurl, size_t maxLen) {
 
 // strip newline by fgets
 void strip_newline(char *s) {
-    char *nl = strchr(s, '\n');
-    if (nl) {
-        *nl = '\0';
-    }
-    char *cr = strchr(s, '\r');
-    if (cr) {
-        *cr = '\0';
-    }
+    s[strcspn(s, "\r\n")] = '\0';
 }
+
 
 int main(void) {
     const char *home = get_home();
