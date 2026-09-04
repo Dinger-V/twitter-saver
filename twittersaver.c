@@ -60,6 +60,10 @@ void strip_newline(char *s) {
     if (nl) {
         *nl = '\0';
     }
+    char *cr = strchr(r, '\r');
+    if (cr) {
+        *cr = '\0';
+    }
 }
 
 int main(void) {
