@@ -1,6 +1,6 @@
 .PHONY: clean
 
-saver: twittersaver.c
+saver: twittersaver.c platform.h
 	gcc -o saver twittersaver.c -lcurl
 
 clean:
