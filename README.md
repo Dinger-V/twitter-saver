@@ -12,7 +12,7 @@ make
 ```
 to rebuild the program
 
-(note that you need a C compiler for this e.g: gcc)
+(note that you need a C compiler for this)
 
 run ./saver and just paste the twit url + your category. 
 
