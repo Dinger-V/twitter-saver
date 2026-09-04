@@ -6,6 +6,9 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include "platform.h"
+
+#define CONFIG_FILE "dirpaths.txt"
+
 struct memory_buffer {
     char *data;
     size_t size;
@@ -31,6 +34,63 @@ size_t write_mem_cb(void *data, size_t size, size_t nmemb, void *userp) {
     chunk->size = chunk->size + new_bytes;
     return size * nmemb;
 }
+// expand character so it accepts ~/directory
+void expand_home_path(char *path, size_t max_len) {
+    if (path[0] == '~' && (path[1] == '/' || path[1] == '\\' || path[1] == '\0')) {
+        const char *home = get_home();
+        if (home != NULL) {
+            char temp[512];
+            snprintf(temp, sizeof(temp), "%s%s", home, path + 1);
+            snprintf(path, max_len, "%s", temp);
+        }
+    }
+}
+// strip newline by fgets
+void strip_newline(char *s) {
+    s[strcspn(s, "\r\n")] = '\0';
+}
+
+void save_dir(const char *dir) {
+    FILE *fp = fopen(CONFIG_FILE, "r");
+    if (fp != NULL) {
+        char line[256];
+        while(fgets(line, sizeof(line), fp)) {
+            strip_newline(line);
+            if (strcmp(line, dir) == 0) {
+                fclose(fp);
+                return;
+            }
+        }
+        fclose(fp);
+    }
+    
+    
+    fp = fopen(CONFIG_FILE, "a");
+    if (fp == NULL) {
+        perror("Could not open config file");
+        return;
+    }
+    fprintf(fp, "%s\n", dir);
+    fclose(fp);
+}
+
+void load_dir(char dirs[][256], int *count) {
+    char line[256];
+    FILE *fp = fopen(CONFIG_FILE, "r");
+    if (fp == NULL) {
+        printf("file doesn't exist\n");
+        return;
+    }
+    int dir_count = 0;
+    while (dir_count < 20 && fgets(line, sizeof(line), fp)) {
+        strip_newline(line);
+        strcpy(dirs[dir_count], line);
+        dir_count++;
+    }
+    *count = dir_count;
+    fclose(fp);
+}
+
 // image extractor here since we parse the raw twitter page (html part)
 int og_imageExtractor(const char *html, char *outurl, size_t maxLen) {
     const char *ogtag = strstr(html, "property=\"og:image\"");
@@ -54,20 +114,75 @@ int og_imageExtractor(const char *html, char *outurl, size_t maxLen) {
     return 1;
 }
 
-// strip newline by fgets
-void strip_newline(char *s) {
-    s[strcspn(s, "\r\n")] = '\0';
-}
-
-
 int main(void) {
     const char *home = get_home();
     if (home == NULL) {
         home = ".";
     }
-    char base[256];
-    snprintf(base, sizeof(base), "%s/Pictures", home); //edit this part to your preferred directory and make clean -> make
-    // I haven't added a good directory check here, so its hardcoded to home/YourDirectory, but inside the function there's already a nice sort for the subdirectory.
+
+    struct stat stats;
+    char saved_dirs[20][256];
+    int dir_count = 0;
+    char selected_dir[256];
+
+    load_dir(saved_dirs, &dir_count);
+
+    if (dir_count > 0) {
+        printf("existing saved directory\n");
+        for (int i = 0; i < dir_count; i++) {
+            printf("%d) %s\n", i + 1, saved_dirs[i]);
+        }
+        printf("%d) enter a new custom directory\n", dir_count + 1);
+
+        while (1) {
+            int choice;
+            printf("Choose an option (1-%d): ", dir_count + 1);
+            int z = scanf("%d", &choice);
+            if (z != 1) {
+                while (getchar() != '\n');
+                printf("Invalid input, try again\n");
+                continue;
+            }
+            while (getchar() != '\n');
+
+            if (choice < 1 || choice > dir_count + 1) {  
+                printf("invalid choice\n");
+                continue;
+            }
+            if (choice <= dir_count) {
+                snprintf(selected_dir, sizeof(selected_dir), "%s", saved_dirs[choice - 1]);
+                expand_home_path(selected_dir, sizeof(selected_dir));
+                printf("The directory selected is: %s\n", selected_dir);
+                break;
+            } else {
+                printf("Enter custom directory: ");
+                fgets(selected_dir, sizeof(selected_dir), stdin);
+                strip_newline(selected_dir);
+                expand_home_path(selected_dir, sizeof(selected_dir));
+                save_dir(selected_dir);
+                break;
+            }
+        }
+    } else {
+        printf("Enter directory (or press enter for default ~/Pictures): ");
+        fgets(selected_dir, sizeof(selected_dir), stdin);
+        strip_newline(selected_dir);
+
+        if (selected_dir[0] == '\0') {
+            snprintf(selected_dir, sizeof(selected_dir), "%s/Pictures", home);
+        } else {
+            expand_home_path(selected_dir, sizeof(selected_dir));
+            save_dir(selected_dir);
+        }
+
+        if (stat(selected_dir, &stats) == -1) {
+            perror("Directory doesn't exist");
+            snprintf(selected_dir, sizeof(selected_dir), "%s/Pictures", home);
+        } else if (!S_ISDIR(stats.st_mode)) {
+            perror("This is not a directory");
+            snprintf(selected_dir, sizeof(selected_dir), "%s/Pictures", home);
+        }
+    }
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     CURL *curl = curl_easy_init();
@@ -100,9 +215,9 @@ int main(void) {
 
         char dirpath[512];
         if (category[0] != '\0') {
-            snprintf(dirpath, sizeof(dirpath), "%s/%s", base, category);
+            snprintf(dirpath, sizeof(dirpath), "%s/%s", selected_dir, category);
         } else {
-            snprintf(dirpath, sizeof(dirpath), "%s", base);
+            snprintf(dirpath, sizeof(dirpath), "%s", selected_dir);
         }
 
         struct memory_buffer chunk;
