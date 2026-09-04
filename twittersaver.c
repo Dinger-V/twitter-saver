@@ -5,7 +5,7 @@
 #define BUFSIZE 64
 #include <sys/stat.h>
 #include <errno.h>
-
+#include "platform.h"
 struct memory_buffer {
     char *data;
     size_t size;
@@ -63,7 +63,7 @@ void strip_newline(char *s) {
 }
 
 int main(void) {
-    const char *home = getenv("HOME");
+    const char *home = get_home();
     if (home == NULL) {
         home = ".";
     }
@@ -189,7 +189,7 @@ int main(void) {
         char filepath[600];
         snprintf(filepath, sizeof(filepath), "%s/%s", dirpath, filename);
 
-        if (mkdir(dirpath, 0755) != 0) {
+        if (make_dir(dirpath, 0755) != 0) {
             if (errno != EEXIST) {
                 perror("mkdir failed");
                 continue;
