@@ -1,4 +1,4 @@
-# twitter-saver-
+# twitter-saver
 A twitter saver built in C as my project
 Built using libcurl, shit was so fucking hard to understand
 ## Usage
