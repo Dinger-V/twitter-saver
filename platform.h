@@ -3,12 +3,14 @@
 
 #ifdef _WIN32
   #include <direct.h>
+  #include <stdlib.h>
   #define get_home() getenv("USERPROFILE")
-  #define make_dir(path) _mkdir(path)
+  #define make_dir(path, mode) _mkdir(path)
 #else
   #include <sys/stat.h>
+  #include <stdlib.h>
   #define get_home() getenv("HOME")
-  #define make_dir(path) mkdir(path, 0755)
+  #define make_dir(path, mode) mkdir(path, mode)
 #endif
 
 #endif
