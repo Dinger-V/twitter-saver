@@ -11,6 +11,8 @@ make
 ```
 to rebuild the program
 
+(note that you need a C compiler for this e.g: gcc)
+
 run ./saver and just paste the twit url + your category. 
 
 Note that if the category you entered doesn't exist then it would make a new one for you
