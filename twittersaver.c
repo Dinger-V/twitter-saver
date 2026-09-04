@@ -60,7 +60,7 @@ void strip_newline(char *s) {
     if (nl) {
         *nl = '\0';
     }
-    char *cr = strchr(r, '\r');
+    char *cr = strchr(s, '\r');
     if (cr) {
         *cr = '\0';
     }
