@@ -1,5 +1,6 @@
 # twitter-saver
 A twitter saver built in C as my project
+
 Built using libcurl, shit was so fucking hard to understand
 ## Usage
 +) Edit the file path to your preference, but it would remain in home/yourdirectory because im lazy
