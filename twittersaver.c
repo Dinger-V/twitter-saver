@@ -207,8 +207,7 @@ int main(void) {
     while (1) {
         char url[512];
         char category[256];
-
-        printf("Enter tweet URL (or 'quit' to exit): ");
+        printf("Enter tweet URL / 'dir' to change directory / 'quit' to exit: ");
         if (!fgets(url, sizeof(url), stdin)) {
             break;
         }
