@@ -123,7 +123,7 @@ int extract_media_urls(const char *json, char urls[][512], int max_urls) {
     return count;
 }
 
-int main(void) {
+void pick_directory(char *selected_dir, size_t max_len) {
     const char *home = get_home();
     if (home == NULL) {
         home = ".";
@@ -132,7 +132,6 @@ int main(void) {
     struct stat stats;
     char saved_dirs[20][256];
     int dir_count = 0;
-    char selected_dir[256];
 
     load_dir(saved_dirs, &dir_count);
 
@@ -159,40 +158,45 @@ int main(void) {
                 continue;
             }
             if (choice <= dir_count) {
-                snprintf(selected_dir, sizeof(selected_dir), "%s", saved_dirs[choice - 1]);
-                expand_home_path(selected_dir, sizeof(selected_dir));
+                snprintf(selected_dir, max_len, "%s", saved_dirs[choice - 1]);
+                expand_home_path(selected_dir, max_len);
                 printf("The directory selected is: %s\n", selected_dir);
                 break;
             } else {
                 printf("Enter custom directory: ");
-                fgets(selected_dir, sizeof(selected_dir), stdin);
+                fgets(selected_dir, max_len, stdin);
                 strip_newline(selected_dir);
-                expand_home_path(selected_dir, sizeof(selected_dir));
+                expand_home_path(selected_dir, max_len);
                 save_dir(selected_dir);
                 break;
             }
         }
     } else {
         printf("Enter directory (or press enter for default ~/Pictures): ");
-        fgets(selected_dir, sizeof(selected_dir), stdin);
+        fgets(selected_dir, max_len, stdin);
         strip_newline(selected_dir);
 
         if (selected_dir[0] == '\0') {
-            snprintf(selected_dir, sizeof(selected_dir), "%s/Pictures", home);
+            snprintf(selected_dir, max_len, "%s/Pictures", home);
         } else {
-            expand_home_path(selected_dir, sizeof(selected_dir));
+            expand_home_path(selected_dir, max_len);
             save_dir(selected_dir);
         }
 
         if (stat(selected_dir, &stats) == -1) {
             perror("Directory doesn't exist");
-            snprintf(selected_dir, sizeof(selected_dir), "%s/Pictures", home);
+            snprintf(selected_dir, max_len, "%s/Pictures", home);
         } else if (!S_ISDIR(stats.st_mode)) {
             perror("This is not a directory");
-            snprintf(selected_dir, sizeof(selected_dir), "%s/Pictures", home);
+            snprintf(selected_dir, max_len, "%s/Pictures", home);
         }
     }
+}
 
+int main(void) {
+
+    char selected_dir[256];
+    pick_directory(selected_dir, sizeof(selected_dir));
     curl_global_init(CURL_GLOBAL_DEFAULT);
     CURL *curl = curl_easy_init();
     if (!curl) {
@@ -211,6 +215,10 @@ int main(void) {
         strip_newline(url);
         if (strcmp(url, "quit") == 0) {
             break;
+        }
+        if (strcmp(url, "dir") == 0) {
+            pick_directory(selected_dir, sizeof(selected_dir));
+            continue;
         }
         if (url[0] == '\0') {
             continue;
