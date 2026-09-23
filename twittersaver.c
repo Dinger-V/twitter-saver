@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include "platform.h"
-
+#include <unistd.h> 
 #define CONFIG_FILE "dirpaths.txt"
 
 struct memory_buffer {
@@ -72,6 +72,23 @@ void save_dir(const char *dir) {
     fclose(fp);
 }
 
+const char *matching_brackets(const char* start) {
+    int depth = 0;
+    const char *p = start;
+    while (*p != '\0') {
+        if (*p == '[') {
+            depth++;
+        } else if (*p == ']') {
+            depth--;
+            if (depth == 0) {
+                return p;
+            }     
+        }
+        p++;
+    }
+    return NULL;
+}
+
 void load_dir(char dirs[][256], int *count) {
     char line[256];
     FILE *fp = fopen(CONFIG_FILE, "r");
@@ -91,25 +108,25 @@ void load_dir(char dirs[][256], int *count) {
 
 // extract url from json, no https bullshit
 int extract_media_urls(const char *json, char urls[][512], int max_urls) {
-    const char *media_pos = strstr(json, "\"mediaURLs\":[");
-    if (media_pos == NULL) {
+    const char *all_pos = strstr(json, "\"all\":[");
+    if (all_pos == NULL) {
         return 0;
     }
-    const char *pos = media_pos + 13;
+    const char *pos = all_pos + 7;
     int count = 0;
-
-    while (count < max_urls) {
-        if (*pos == ']') {
-            break;
-        }
-        const char *start_quote = strchr(pos, '"');
-        if (!start_quote) break;
-        const char *end_quote = strchr(start_quote + 1, '"');
+    const char *array_end = matching_brackets(all_pos);
+    if (!array_end) {
+        return 0;
+    }
+    while (count < max_urls && pos < array_end) {
+        const char *url_key = strstr(pos, "\"url\":\"");
+        if (!url_key || url_key >= array_end) break;
+        const char *start_quote = url_key + 7; 
+        const char *end_quote = strchr(start_quote, '"');
         if (!end_quote) break;
-
         char url[512];
         int i = 0;
-        const char *src = start_quote + 1;
+        const char *src = start_quote;
         while (src + i != end_quote && i < (int)sizeof(url) - 1) {
             url[i] = src[i];
             i++;
@@ -207,7 +224,8 @@ int main(void) {
     while (1) {
         char url[512];
         char category[256];
-        printf("Enter tweet URL / 'dir' to change directory / 'quit' to exit: ");
+
+        printf("Enter tweet URL (or 'quit' to exit): ");
         if (!fgets(url, sizeof(url), stdin)) {
             break;
         }
@@ -237,14 +255,14 @@ int main(void) {
         }
 
        
-        // now it fetches api.vxtwitter, essentially handling the bs created
+        // now it fetches api.fxtwitter, essentially handling the bs created
         char api_url[600];
-        snprintf(api_url, sizeof(api_url), "https://api.vxtwitter%s", url + 9);
+        snprintf(api_url, sizeof(api_url), "https://api.fxtwitter%s", url + 9);
 
         struct memory_buffer chunk;
         chunk.data = malloc(1);
         chunk.size = 0;
-
+        sleep(1);
         curl_easy_setopt(curl, CURLOPT_URL, api_url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_mem_cb);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
@@ -303,7 +321,7 @@ int main(void) {
             char ext[16];
             char *src2 = dot_pos + 1;
             int z = 0;
-            while (src2[z] != '\0' && z < (int)sizeof(ext) - 1) {
+            while (src2[z] != '\0' && src2[z] != '?' && z < (int)sizeof(ext) - 1) {
                 ext[z] = src2[z];
                 z++;
             }
@@ -319,7 +337,6 @@ int main(void) {
                 perror("Failed to open file for writing");
                 continue;
             }
-
             curl_easy_setopt(curl, CURLOPT_URL, media_url);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
