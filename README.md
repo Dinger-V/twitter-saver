@@ -21,3 +21,5 @@ You will be prompted to enter a new directory or use your existing one (saved ri
 Note that if the category you entered doesn't exist then it would make a new one for you
 
 if you want to save it in your main folder, just press enter while prompted for category.
+
+(It's quite complicated on how to set it up properly on windows, so linux is preferred. Waiting time is increased by around 1-2 seconds due to the program finding the matching url, sorry.)
