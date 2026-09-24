@@ -49,6 +49,20 @@ void strip_newline(char *s) {
     s[strcspn(s, "\r\n")] = '\0';
 }
 
+int validurl(const char *url) {
+    size_t len = strlen(url);
+    if (len <= 9) {
+        return 0;
+    }
+    if (strncmp(url, "https://x.com/", 14) == 0) {
+        return 1;
+    }
+    if (strncmp(url, "https://twitter.com/", 21) == 0) {
+        return 1;
+    }
+    return 0;
+}
+
 void save_dir(const char *dir) {
     FILE *fp = fopen(CONFIG_FILE, "r");
     if (fp != NULL) {
@@ -72,6 +86,23 @@ void save_dir(const char *dir) {
     fclose(fp);
 }
 
+const char *matching_brackets2(const char* start) {
+    int depth = 0;
+    const char *p = start;
+    while (*p != '\0') {
+        if (*p == '{') {
+            depth++;
+        } else if (*p == '}') {
+            depth--;
+            if (depth == 0) {
+                return p;
+            }     
+        }
+        p++;
+    }
+    return NULL;
+}
+
 const char *matching_brackets(const char* start) {
     int depth = 0;
     const char *p = start;
@@ -89,6 +120,7 @@ const char *matching_brackets(const char* start) {
     return NULL;
 }
 
+// awesome comment here
 void load_dir(char dirs[][256], int *count) {
     char line[256];
     FILE *fp = fopen(CONFIG_FILE, "r");
@@ -119,8 +151,13 @@ int extract_media_urls(const char *json, char urls[][512], int max_urls) {
         return 0;
     }
     while (count < max_urls && pos < array_end) {
-        const char *url_key = strstr(pos, "\"url\":\"");
-        if (!url_key || url_key >= array_end) break;
+        const char *starting = strchr(pos, '{');
+        if (!starting || starting >= array_end) break;
+        const char*ending = matching_brackets2(starting);
+        if (!ending || ending >= array_end) break;
+
+        const char *url_key = strstr(starting, "\"url\":\"");
+        if (!url_key || url_key >= ending) break;
         const char *start_quote = url_key + 7; 
         const char *end_quote = strchr(start_quote, '"');
         if (!end_quote) break;
@@ -135,7 +172,7 @@ int extract_media_urls(const char *json, char urls[][512], int max_urls) {
 
         strcpy(urls[count], url);
         count++;
-        pos = end_quote + 1;
+        pos = ending + 1;
     }
     return count;
 }
@@ -224,7 +261,8 @@ int main(void) {
     while (1) {
         char url[512];
         char category[256];
-
+        memset(url, 0, sizeof(url));
+        memset(category, 0, sizeof(category));
         printf("Enter tweet URL (or 'quit' to exit): ");
         if (!fgets(url, sizeof(url), stdin)) {
             break;
@@ -238,6 +276,10 @@ int main(void) {
             continue;
         }
         if (url[0] == '\0') {
+            continue;
+        }
+        if (!validurl(url)) {
+            printf("Invalid url\n");
             continue;
         }
 
@@ -255,7 +297,7 @@ int main(void) {
         }
 
        
-        // now it fetches api.fxtwitter, essentially handling the bs created
+        // now it fetches api.vxtwitter, essentially handling the bs created
         char api_url[600];
         snprintf(api_url, sizeof(api_url), "https://api.fxtwitter%s", url + 9);
 
