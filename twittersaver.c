@@ -304,7 +304,6 @@ int main(void) {
         struct memory_buffer chunk;
         chunk.data = malloc(1);
         chunk.size = 0;
-        sleep(1);
         curl_easy_setopt(curl, CURLOPT_URL, api_url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_mem_cb);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
