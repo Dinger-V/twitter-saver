@@ -7,7 +7,10 @@
 #include <errno.h>
 #include "platform.h"
 #include <unistd.h> 
+#include <strings.h>
 #define CONFIG_FILE "dirpaths.txt"
+#define MAX_MEDIA 32
+
 
 struct memory_buffer {
     char *data;
@@ -263,15 +266,15 @@ int main(void) {
         char category[256];
         memset(url, 0, sizeof(url));
         memset(category, 0, sizeof(category));
-        printf("Enter tweet URL (or 'quit' to exit): ");
+        printf("Enter tweet URL ('Quit' to exit, 'dir' to change the directory): ");
         if (!fgets(url, sizeof(url), stdin)) {
             break;
         }
         strip_newline(url);
-        if (strcmp(url, "quit") == 0) {
+        if (strcasecmp(url, "quit") == 0) {
             break;
         }
-        if (strcmp(url, "dir") == 0) {
+        if (strcasecmp(url, "dir") == 0) {
             pick_directory(selected_dir, sizeof(selected_dir));
             continue;
         }
@@ -299,7 +302,8 @@ int main(void) {
        
         // now it fetches api.vxtwitter, essentially handling the bs created
         char api_url[600];
-        snprintf(api_url, sizeof(api_url), "https://api.fxtwitter%s", url + 9);
+        const char *path = strchr(url + 8, '/');
+        snprintf(api_url, sizeof(api_url), "https://api.fxtwitter.com%s", path);
 
         struct memory_buffer chunk;
         chunk.data = malloc(1);
@@ -327,8 +331,11 @@ int main(void) {
         
 
         // extract all media url
-        char media_urls[4][512];
-        int media_count = extract_media_urls(chunk.data, media_urls, 4);
+        char media_urls[MAX_MEDIA][512];
+        int media_count = extract_media_urls(chunk.data, media_urls, MAX_MEDIA);
+        if (media_count == MAX_MEDIA) {
+            printf("Warning: hit the %d item cap, some media may be skipped\n", MAX_MEDIA);
+        }
         free(chunk.data);
 
         if (media_count == 0) {
